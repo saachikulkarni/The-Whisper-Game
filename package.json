@@ -1,0 +1,20 @@
+{
+  "name": "online-chinese-whisper",
+  "version": "1.0.0",
+  "description": "Online multiplayer Chinese Whisper game",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "test": "node test_simulation.cjs"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.6",
+    "express": "^4.22.3",
+    "mongoose": "^9.11.1",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}
