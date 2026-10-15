@@ -33,12 +33,12 @@ Players sit in a **clockwise circle**, pass secret words **clockwise** (`1 ➔ 2
 - Once asked, the target's secret word is **revealed out loud** on screen as their answer!
 
 ### 4. Phase 3: Reveal & Majority Vote 🗳️
-- The target is in the **Hot Seat** and cannot vote on their own answer.
-- All other players vote on the pairing:
+- The **Question Asker** is in the **Hot Seat** and cannot vote on their own question.
+- All other players (including the target whose word was revealed) vote on the pairing:
   - ✅ **YES!** — Makes perfect sense
   - 🟡 **PARTIALLY** — Makes some sense / kinda!
   - ❌ **NO!** — Complete hilarious nonsense
-- **Scoring**:
+- **Scoring (Awarded to the Question Asker)**:
   - `Base Points`: Number of YES votes.
   - `Majority Bonus`: +2 bonus points if YES votes exceed 50% of voters.
   - `Unanimous Bonus`: +1 bonus point if 100% of voters voted YES.

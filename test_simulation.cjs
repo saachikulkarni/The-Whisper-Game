@@ -140,22 +140,25 @@ async function runTest() {
     await votingStatePromise;
     console.log("✅ Phase: voting (Secret word revealed: 'Pizza')");
 
-    // Voters: Alice, Bob, Diana vote "yes" on Charlie's answer
+    // Voters: Alice (p1), Bob (p2), Charlie (p3) vote "yes" on Diana's question!
+    // Diana (p4) is the Asker and cannot vote.
     p1.emit("vote", "yes");
     p2.emit("vote", "yes");
-    p4.emit("vote", "yes");
+    p3.emit("vote", "yes");
 
     // Wait for answerResult event
     const result = await new Promise(resolve => {
         p1.once("answerResult", resolve);
     });
 
-    console.log(`✅ Answer Result for ${result.targetName}:`);
-    console.log(`   Word: "${result.revealedWord}", Yes: ${result.yes}, Points Earned: ${result.pointsEarned}`);
+    console.log(`✅ Answer Result for Asker ${result.askerName}:`);
+    console.log(`   Question Asker: "${result.askerName}", Word Revealed: "${result.revealedWord}"`);
+    console.log(`   Yes Votes: ${result.yes}, Points Earned by Asker: ${result.pointsEarned}`);
     console.log(`   Majority match: ${result.isMajority}, Unanimous: ${result.isUnanimous}`);
 
-    if (result.revealedWord !== "Pizza") throw new Error("Charlie's revealed word should be Pizza!");
-    if (result.yes !== 3) throw new Error("Should have received 3 YES votes!");
+    if (result.askerName !== "Diana") throw new Error("Points should be awarded to the Asker (Diana)!");
+    if (result.revealedWord !== "Pizza") throw new Error("Target's revealed word should be Pizza!");
+    if (result.yes !== 3) throw new Error("Should have received 3 YES votes from other players!");
     if (result.pointsEarned !== 6) throw new Error("Scoring should be 3 base + 2 majority bonus + 1 unanimous bonus = 6 pts!");
 
     console.log("\n🎉 ALL TESTS AND GAME LOGIC VERIFIED WITH 100% MATHEMATICAL PERFECTION!");

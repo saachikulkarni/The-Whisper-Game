@@ -507,7 +507,7 @@ socket.on("answerResult", data => {
     $("tallyYes").textContent = data.yes;
     $("tallyPartially").textContent = data.partially;
     $("tallyNo").textContent = data.no;
-    $("pointsAwardedToast").textContent = `+${data.pointsEarned} Points for ${data.targetName}!`;
+    $("pointsAwardedToast").textContent = `+${data.pointsEarned} Points for ${data.askerName} (Question Asker)!`;
 });
 
 socket.on("roundFinished", data => {
@@ -738,10 +738,10 @@ function renderVoting(state) {
 
     $("voteProgressText").textContent = `Votes Received: ${v.votesReceived} / ${v.totalVoters}`;
 
-    const isTarget = state.me && state.me.id === v.targetId;
+    const isAsker = state.me && state.me.id === (v.askerId || q.askerId);
 
-    if (isTarget) {
-        // Target cannot vote!
+    if (isAsker) {
+        // Asker cannot vote on their own question!
         $("voteButtonsSection").classList.add("hidden");
         $("targetHotSeatNotice").classList.remove("hidden");
     } else {
@@ -806,11 +806,11 @@ function renderRoundResults(state) {
             el.className = "score-row-item";
             el.innerHTML = `
                 <div style="flex: 1;">
-                    <div style="font-size: 0.85rem; color: #cbd5e1;">Q: "${qa.question}"</div>
+                    <div style="font-size: 0.85rem; color: #cbd5e1;">Q by <strong>${qa.askerName}</strong>: "${qa.question}"</div>
                     <div style="font-size: 1rem; font-weight: 800; color: #fde047;">A (${qa.targetName}): ${qa.revealedWord}</div>
                 </div>
                 <div style="font-weight: 800; color: ${qa.majorityMatch ? '#34d399' : '#f87171'};">
-                    ${qa.majorityMatch ? '✅ Majority Match' : '❌ Nonsense'} (+${qa.pointsAwarded} pts)
+                    ${qa.majorityMatch ? '✅ Majority Match' : '❌ Nonsense'} (+${qa.pointsAwarded} pts to ${qa.askerName})
                 </div>
             `;
             recapList.appendChild(el);

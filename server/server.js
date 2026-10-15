@@ -236,8 +236,11 @@ function buildPublicState(game, socket) {
 
     /* ---------------- VOTING PROGRESS ---------------- */
     if (game.phase === PHASES.VOTING) {
+        const pair = game.round.questionPairs[game.round.questionIndex];
+        const asker = pair ? game.players[pair.askerIndex] : null;
         const totalVoters = Math.max(0, game.players.length - 1);
         state.voting = {
+            askerId: asker ? asker.id : null,
             targetId: game.round.currentTargetId,
             votesReceived: Object.keys(game.round.votes).length,
             totalVoters,
@@ -342,13 +345,15 @@ function finishVoting(game) {
     if (isMajority) pointsEarned += 2;
     if (isUnanimous) pointsEarned += 1;
 
-    if (target) {
-        target.score += pointsEarned;
-        game.round.roundScores[target.id] = (game.round.roundScores[target.id] || 0) + pointsEarned;
-    }
-
     const pair = game.round.questionPairs[game.round.questionIndex];
     const asker = pair ? game.players[pair.askerIndex] : null;
+
+    // Scoring Rules:
+    // The person who is giving the question (ASKER) gets the points!
+    if (asker) {
+        asker.score += pointsEarned;
+        game.round.roundScores[asker.id] = (game.round.roundScores[asker.id] || 0) + pointsEarned;
+    }
 
     const qaRecord = {
         askerName: asker ? asker.username : "",
@@ -362,6 +367,8 @@ function finishVoting(game) {
     game.round.qaHistory.push(qaRecord);
 
     io.to(getRoomName(game)).emit("answerResult", {
+        askerId: asker ? asker.id : "",
+        askerName: asker ? asker.username : "",
         targetId,
         targetName: target ? target.username : "",
         revealedWord: game.round.revealedWord,
@@ -786,11 +793,11 @@ io.on("connection", socket => {
         const voter = getPlayerBySocket(game, socket.id);
         if (!voter) return;
 
-        const target = getPlayer(game, game.round.currentTargetId);
-        if (!target) return;
+        const pair = game.round.questionPairs[game.round.questionIndex];
+        const asker = pair ? game.players[pair.askerIndex] : null;
 
-        if (voter.id === target.id) {
-            socket.emit("errorMessage", "You cannot vote on your own secret word!");
+        if (asker && voter.id === asker.id) {
+            socket.emit("errorMessage", "You cannot vote on your own question!");
             return;
         }
 
