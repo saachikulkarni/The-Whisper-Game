@@ -13,9 +13,11 @@ import java.util.Map;
 public class GameController {
 
     private final GameService gameService;
+    private final com.whispergame.service.MongoHistoryService mongoHistoryService;
 
-    public GameController(GameService gameService) {
+    public GameController(GameService gameService, com.whispergame.service.MongoHistoryService mongoHistoryService) {
         this.gameService = gameService;
+        this.mongoHistoryService = mongoHistoryService;
     }
 
     @GetMapping("/health")
@@ -23,6 +25,7 @@ public class GameController {
         Map<String, Object> res = new HashMap<>();
         res.put("status", "ok");
         res.put("activeGames", gameService.getActiveGamesCount());
+        res.put("mongoConnected", mongoHistoryService.isConnected());
         res.put("platform", "Spring Boot (Java 21)");
         return ResponseEntity.ok(res);
     }

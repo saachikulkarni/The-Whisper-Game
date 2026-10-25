@@ -20,6 +20,11 @@ public class GameService {
     private final Map<String, Game> games = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
     private final SecureRandom random = new SecureRandom();
+    private final MongoHistoryService mongoHistoryService;
+
+    public GameService(@org.springframework.beans.factory.annotation.Autowired(required = false) MongoHistoryService mongoHistoryService) {
+        this.mongoHistoryService = mongoHistoryService;
+    }
 
     // Broadcast callbacks to handler
     private BiConsumer<String, PublicGameState> stateBroadcaster;
@@ -512,6 +517,14 @@ public class GameService {
             Map<String, Object> gameFinishedPayload = new HashMap<>();
             gameFinishedPayload.put("winners", winnerDtos);
             eventBroadcaster.broadcastToGame(game.getCode(), "gameFinished", gameFinishedPayload);
+        }
+
+        if (mongoHistoryService != null) {
+            List<String> winnerNames = new ArrayList<>();
+            for (Map<String, Object> w : winnerDtos) {
+                winnerNames.add((String) w.get("username"));
+            }
+            mongoHistoryService.saveCompletedGame(game, winnerNames);
         }
 
         broadcastState(game);
