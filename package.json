@@ -1,7 +1,7 @@
 {
   "name": "online-chinese-whisper",
   "version": "1.0.0",
-  "description": "Online multiplayer Chinese Whisper game",
+  "description": "Online multiplayer The Whisper Game game",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",

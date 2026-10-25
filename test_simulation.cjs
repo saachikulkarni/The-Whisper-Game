@@ -8,7 +8,7 @@ function waitForConnect(sock) {
 }
 
 async function runTest() {
-    console.log("🚀 Starting Chinese Whisper Multiplayer Automated Simulation...");
+    console.log("🚀 Starting The Whisper Game Multiplayer Automated Simulation...");
 
     const p1 = io(SERVER_URL);
     await waitForConnect(p1);
@@ -160,6 +160,62 @@ async function runTest() {
     if (result.revealedWord !== "Pizza") throw new Error("Target's revealed word should be Pizza!");
     if (result.yes !== 3) throw new Error("Should have received 3 YES votes from other players!");
     if (result.pointsEarned !== 6) throw new Error("Scoring should be 3 base + 2 majority bonus + 1 unanimous bonus = 6 pts!");
+    if (result.displayDuration !== 30) throw new Error("Display duration should be 30 seconds!");
+    console.log("✅ Verified 30-second Q&A display duration metadata (30s)");
+
+    // Test Host Early Skip of 30-second display
+    console.log("⏩ Testing host skipping 30-second result display early...");
+    const nextStepPromise = new Promise(resolve => {
+        p1.on("state", s => {
+            if (s.phase === "questions" || s.phase === "roundResults") resolve(s);
+        });
+    });
+    p1.emit("skipResultDisplay");
+    await nextStepPromise;
+    console.log("✅ Host successfully skipped 30s display to next step");
+
+    // Test Democratic Majority Vote Kick in a separate clean room
+    console.log("👢 Testing Democratic Majority Vote to Kick...");
+    const k1 = io(SERVER_URL);
+    const k2 = io(SERVER_URL);
+    const k3 = io(SERVER_URL);
+    await Promise.all([waitForConnect(k1), waitForConnect(k2), waitForConnect(k3)]);
+
+    k1.emit("createGame", { username: "HostUser", avatar: "🤖", rounds: 1 });
+    const kickRoomCode = await new Promise(r => k1.once("gameCreated", d => r(d.code)));
+
+    await new Promise(r => {
+        k2.once("joinedGame", r);
+        k2.emit("joinGame", { username: "VoterUser", avatar: "👽", code: kickRoomCode });
+    });
+
+    const targetPlayerId = await new Promise(r => {
+        k3.once("joinedGame", d => r(d.playerId));
+        k3.emit("joinGame", { username: "TargetUser", avatar: "🐸", code: kickRoomCode });
+    });
+
+    // In a 3-player room, total other players = 2. Majority threshold = floor(2/2)+1 = 2 votes.
+    const kickedPromise = new Promise(resolve => {
+        k3.once("kickedFromGame", resolve);
+    });
+    const playerKickedBroadcast = new Promise(resolve => {
+        k1.once("playerKicked", resolve);
+    });
+
+    // k1 and k2 cast their votes to kick target
+    k1.emit("voteKickPlayer", targetPlayerId);
+    k2.emit("voteKickPlayer", targetPlayerId);
+
+    const kickedEvent = await kickedPromise;
+    const broadcastEvent = await playerKickedBroadcast;
+    console.log("✅ Target player received kickedFromGame:", kickedEvent.message);
+    console.log("✅ Room received playerKicked broadcast for:", broadcastEvent.username);
+
+    if (broadcastEvent.username !== "TargetUser") throw new Error("Kicked player should be TargetUser!");
+
+    k1.disconnect();
+    k2.disconnect();
+    k3.disconnect();
 
     console.log("\n🎉 ALL TESTS AND GAME LOGIC VERIFIED WITH 100% MATHEMATICAL PERFECTION!");
 

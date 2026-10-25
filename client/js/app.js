@@ -1,5 +1,5 @@
 /* =========================================================
-   CHINESE WHISPER — CLIENT APPLICATION LOGIC
+   THE WHISPER GAME — CLIENT APPLICATION LOGIC
    Multiplayer Real-time Circle Party Game
 ========================================================= */
 
@@ -12,6 +12,7 @@ let selectedRounds = 3;
 let currentVote = null;
 let isWordHidden = false;
 let toastTimeout = null;
+let resultCountdownTimer = null;
 
 const AVATARS = ["🦊", "🐼", "🦁", "🐯", "🦄", "🐸", "🐙", "🤖", "👽", "🦉", "🐵", "🐧", "🐲", "🐱", "🐶", "🚀"];
 
@@ -360,6 +361,25 @@ function initActionButtons() {
         navigator.clipboard.writeText(url);
         showToast("Invite link copied to clipboard!", "success");
     });
+
+    // Host Skip 30s Result Countdown Early
+    const btnSkipResult = $("btnHostSkipResult");
+    if (btnSkipResult) {
+        btnSkipResult.addEventListener("click", () => {
+            socket.emit("skipResultDisplay");
+        });
+    }
+
+    // Delegated click for Kick buttons (Circle and Lobby)
+    document.addEventListener("click", e => {
+        const kickBtn = e.target.closest("[data-kick-id]");
+        if (kickBtn) {
+            e.stopPropagation();
+            const id = kickBtn.dataset.kickId;
+            socket.emit("voteKickPlayer", id);
+            if (window.sounds) window.sounds.click();
+        }
+    });
 }
 
 /* =========================================================
@@ -505,9 +525,62 @@ socket.on("answerResult", data => {
 
     $("votingVerdictBanner").textContent = verdictText;
     $("tallyYes").textContent = data.yes;
-    $("tallyPartially").textContent = data.partially;
     $("tallyNo").textContent = data.no;
     $("pointsAwardedToast").textContent = `+${data.pointsEarned} Points for ${data.askerName} (Question Asker)!`;
+
+    // 30-Second Countdown Animation & Timer
+    if (resultCountdownTimer) {
+        clearInterval(resultCountdownTimer);
+        resultCountdownTimer = null;
+    }
+
+    const totalSeconds = data.displayDuration || 30;
+    let secondsLeft = totalSeconds;
+
+    const progressEl = $("resultCountdownProgress");
+    const labelEl = $("resultTimerCountdown");
+    const hostSkipBtn = $("btnHostSkipResult");
+
+    if (progressEl) progressEl.style.width = "100%";
+    if (labelEl) labelEl.textContent = `Next question in ${secondsLeft}s...`;
+
+    if (hostSkipBtn) {
+        if (currentState && currentState.isHost) {
+            hostSkipBtn.classList.remove("hidden");
+        } else {
+            hostSkipBtn.classList.add("hidden");
+        }
+    }
+
+    resultCountdownTimer = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            clearInterval(resultCountdownTimer);
+            resultCountdownTimer = null;
+            if (labelEl) labelEl.textContent = "Loading next question...";
+            if (progressEl) progressEl.style.width = "0%";
+            return;
+        }
+        if (labelEl) labelEl.textContent = `Next question in ${secondsLeft}s...`;
+        if (progressEl) {
+            const pct = Math.max(0, (secondsLeft / totalSeconds) * 100);
+            progressEl.style.width = `${pct}%`;
+        }
+    }, 1000);
+});
+
+socket.on("kickedFromGame", data => {
+    alert(data && data.message ? data.message : "You have been kicked from the game.");
+    window.location.href = "/";
+});
+
+socket.on("playerKicked", data => {
+    showToast(`👢 ${data.username} was kicked by majority vote!`, "error");
+    if (window.sounds) window.sounds.reactionPop();
+});
+
+socket.on("kickVoteProgress", data => {
+    showToast(`👢 Kick vote for ${data.targetName}: ${data.currentVotes}/${data.requiredVotes}`, "info");
 });
 
 socket.on("roundFinished", data => {
@@ -607,16 +680,26 @@ function updateSecretWordDisplays() {
 
 // 1. LOBBY
 function renderLobby(state) {
+    if (resultCountdownTimer) {
+        clearInterval(resultCountdownTimer);
+        resultCountdownTimer = null;
+    }
+
     $("rosterCount").textContent = state.players.length;
 
     const list = $("lobbyRosterList");
     list.innerHTML = "";
 
+    const threshold = state.kickThreshold || Math.max(1, Math.floor((state.players.length - 1) / 2) + 1);
+
     state.players.forEach(p => {
         const item = document.createElement("div");
         item.className = "roster-item";
-        const kickBtn = (state.isHost && !p.isHost)
-            ? `<button class="btn-kick" data-kick-id="${p.id}" title="Kick Player">✕</button>`
+        const isMe = state.me && state.me.id === p.id;
+        const kickInfo = (state.kickVotes && state.kickVotes[p.id]) || { count: 0, votedByMe: false };
+
+        const kickBtn = !isMe
+            ? `<button class="btn-kick-vote ${kickInfo.votedByMe ? 'voted' : ''}" data-kick-id="${p.id}" title="Vote to kick ${p.username}">👢 ${kickInfo.votedByMe ? 'Voted' : 'Kick'} (${kickInfo.count}/${threshold})</button>`
             : "";
 
         item.innerHTML = `
@@ -627,15 +710,6 @@ function renderLobby(state) {
             ${kickBtn}
         `;
         list.appendChild(item);
-    });
-
-    list.querySelectorAll(".btn-kick").forEach(btn => {
-        btn.addEventListener("click", e => {
-            e.stopPropagation();
-            const id = btn.dataset.kickId;
-            socket.emit("kickPlayer", id);
-            if (window.sounds) window.sounds.click();
-        });
     });
 
     if (state.isHost) {
@@ -681,6 +755,11 @@ function renderWordPass(state) {
 
 // 3. QUESTION STAGE (ANTICLOCKWISE)
 function renderQuestion(state) {
+    if (resultCountdownTimer) {
+        clearInterval(resultCountdownTimer);
+        resultCountdownTimer = null;
+    }
+
     const q = state.question;
     if (!q) return;
 

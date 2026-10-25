@@ -15,7 +15,6 @@ const RoundSchema = new mongoose.Schema({
         revealedWord: String,
         votes: {
             yes: Number,
-            partially: Number,
             no: Number
         },
         pointsAwarded: Number,

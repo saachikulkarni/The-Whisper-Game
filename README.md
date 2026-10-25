@@ -1,6 +1,6 @@
-# 🗣️ Chinese Whisper — Multiplayer Circle Party Game
+# 🗣️ The Whisper Game — Multiplayer Circle Party Game
 
-A real-time multiplayer online party web game based on the **Chinese Whisper (Secret Word & Logic Match)** party rules.
+A real-time multiplayer online party web game based on **The Whisper Game (Secret Word & Logic Match)** party rules.
 
 Players sit in a **clockwise circle**, pass secret words **clockwise** (`1 ➔ 2 ➔ ... ➔ N ➔ 1`), and then ask custom questions **anticlockwise** (`N ➔ N-1 ➔ ... ➔ 1 ➔ N`). Players reveal their secret word as their answer, and all players vote on whether the answer makes sense to the question! Points are awarded based on **majority votes** with bonus multipliers for clever matches.
 
@@ -12,6 +12,7 @@ Players sit in a **clockwise circle**, pass secret words **clockwise** (`1 ➔ 2
 - Players join via a 6-letter room code or direct invite link.
 - Players pick an avatar (🦊, 🐼, 🦁, 🐯, 🦄, 🐸, 🐙, 🤖, etc.).
 - All players are seated around **The Whisper Circle** in clockwise order (#1, #2, #3, ... #N).
+- Democratic kick feature: Players can vote to kick any player by majority vote at any time.
 
 ### 2. Phase 1: Clockwise Secret Word Pass (↻)
 - Every player secretly chooses a unique word for their clockwise neighbor:
@@ -34,14 +35,14 @@ Players sit in a **clockwise circle**, pass secret words **clockwise** (`1 ➔ 2
 
 ### 4. Phase 3: Reveal & Majority Vote 🗳️
 - The **Question Asker** is in the **Hot Seat** and cannot vote on their own question.
-- All other players (including the target whose word was revealed) vote on the pairing:
+- All other players (including the target whose word was revealed) vote binary:
   - ✅ **YES!** — Makes perfect sense
-  - 🟡 **PARTIALLY** — Makes some sense / kinda!
   - ❌ **NO!** — Complete hilarious nonsense
 - **Scoring (Awarded to the Question Asker)**:
   - `Base Points`: Number of YES votes.
   - `Majority Bonus`: +2 bonus points if YES votes exceed 50% of voters.
   - `Unanimous Bonus`: +1 bonus point if 100% of voters voted YES.
+- **30-Second Showcase**: The question, revealed word, verdict, and point breakdown remain displayed for a full 30 seconds (with live countdown and host early skip).
 
 ### 5. Phase 4 & 5: Round Summaries & 3D Podium 🏆
 - Round highlights showing the best question/answer pairings and round winners.

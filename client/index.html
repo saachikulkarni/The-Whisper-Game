@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chinese Whisper — Multiplayer Circle Party Game</title>
+    <title>The Whisper Game — Multiplayer Circle Party Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
             <div class="brand">
                 <span class="brand-icon">🗣️</span>
                 <div>
-                    <h1 class="brand-title">Chinese Whisper</h1>
+                    <h1 class="brand-title">The Whisper Game</h1>
                     <span class="brand-tagline">Pass Secret Words ↻ • Ask Anticlockwise ↺ • Vote Majority!</span>
                 </div>
             </div>
@@ -212,7 +212,7 @@
                         <!-- Host controls -->
                         <div id="lobbyHostArea" class="action-dock hidden">
                             <button id="btnStartGame" class="btn btn-primary btn-block btn-lg pulse-glow">
-                                <span>Start Chinese Whisper 🚀</span>
+                                <span>Start The Whisper Game 🚀</span>
                             </button>
                             <p class="host-notice">You need at least 2 players to start.</p>
                         </div>
@@ -419,12 +419,6 @@
                                     <span class="vote-sub">Makes perfect sense (+Points)</span>
                                 </button>
 
-                                <button class="vote-card btn-vote-partially" data-vote="partially">
-                                    <span class="vote-icon">🟡</span>
-                                    <strong class="vote-text">PARTIALLY</strong>
-                                    <span class="vote-sub">Makes some sense</span>
-                                </button>
-
                                 <button class="vote-card btn-vote-no" data-vote="no">
                                     <span class="vote-icon">❌</span>
                                     <strong class="vote-text">NO!</strong>
@@ -453,16 +447,23 @@
                                     <span>✅ Yes</span>
                                     <strong id="tallyYes">0</strong>
                                 </div>
-                                <div class="tally partially">
-                                    <span>🟡 Partially</span>
-                                    <strong id="tallyPartially">0</strong>
-                                </div>
                                 <div class="tally no">
                                     <span>❌ No</span>
                                     <strong id="tallyNo">0</strong>
                                 </div>
                             </div>
                             <div id="pointsAwardedToast" class="points-toast">+0 Points!</div>
+
+                            <!-- 30-Second Countdown & Host Skip -->
+                            <div class="result-countdown-container">
+                                <div class="countdown-bar-wrapper">
+                                    <div id="resultCountdownProgress" class="countdown-progress-bar"></div>
+                                </div>
+                                <div class="countdown-label-row">
+                                    <span id="resultTimerCountdown">Next question in 30s...</span>
+                                    <button id="btnHostSkipResult" class="btn-skip-mini hidden" title="Host Skip">Skip ➔</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

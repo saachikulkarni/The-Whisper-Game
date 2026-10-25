@@ -95,12 +95,20 @@ class WhisperCircle {
             }
 
             const avatarDisplay = player.avatar || "👤";
+            const kickInfo = (state.kickVotes && state.kickVotes[player.id]) || { count: 0, votedByMe: false };
+            const kickThreshold = state.kickThreshold || Math.max(1, Math.floor((n - 1) / 2) + 1);
+            const kickBtnHtml = !isMe ? `
+                <button class="circle-kick-btn ${kickInfo.votedByMe ? 'voted' : ''}" data-kick-id="${player.id}" title="Vote to kick ${player.username}">
+                    👢 ${kickInfo.count > 0 ? `${kickInfo.count}/${kickThreshold}` : 'Kick'}
+                </button>
+            ` : '';
 
             seat.innerHTML = `
                 <div class="seat-badge">#${player.number}</div>
                 <div class="seat-avatar">${avatarDisplay}</div>
                 <div class="seat-name">${player.username} ${isMe ? "(You)" : ""}</div>
                 <div class="seat-score">${player.score} pts</div>
+                ${kickBtnHtml}
                 ${!player.connected ? '<div class="seat-dc">Offline</div>' : ""}
             `;
 

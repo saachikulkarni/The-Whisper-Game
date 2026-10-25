@@ -23,5 +23,5 @@ io.on("connection", (socket) => {
 const PORT = 3000;
 
 server.listen(PORT, () => {
-    console.log(`Chinese Whisper server running at http://localhost:${PORT}`);
+    console.log(`The Whisper Game server running at http://localhost:${PORT}`);
 });

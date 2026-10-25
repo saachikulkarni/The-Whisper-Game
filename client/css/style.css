@@ -1,5 +1,5 @@
 /* =========================================================
-   CHINESE WHISPER — PREMIUM PARTY GAME STYLESHEET
+   THE WHISPER GAME — PREMIUM PARTY GAME STYLESHEET
    Sleek glassmorphism, glowing neon accents, and fluid animations
 ========================================================= */
 
@@ -715,6 +715,72 @@ textarea:focus {
     background: var(--accent-red);
     color: #fff;
     transform: scale(1.15);
+}
+
+.btn-kick-vote {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: auto;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-kick-vote:hover {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: var(--accent-red);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-kick-vote.voted {
+    background: var(--accent-red);
+    color: #fff;
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.circle-kick-btn {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    border-radius: var(--radius-full);
+    padding: 1px 7px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.75;
+    transition: opacity 0.2s, background 0.2s, transform 0.2s;
+    z-index: 10;
+}
+
+.player-seat:hover .circle-kick-btn,
+.circle-kick-btn.voted {
+    opacity: 1;
+}
+
+.circle-kick-btn.voted {
+    background: var(--accent-red);
+    color: #fff;
+    border-color: #ef4444;
+}
+
+.circle-kick-btn:hover {
+    background: rgba(239, 68, 68, 0.9);
+    color: #fff;
+    transform: translateX(-50%) scale(1.05);
 }
 
 /* =========================================================
@@ -1539,8 +1605,8 @@ textarea:focus {
 
 .vote-cards-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
 }
 
 .vote-card {
@@ -1568,16 +1634,6 @@ textarea:focus {
     background: rgba(16, 185, 129, 0.25);
     border-color: var(--accent-green);
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-}
-
-.vote-card.btn-vote-partially {
-    border-color: rgba(245, 158, 11, 0.4);
-}
-.vote-card.btn-vote-partially:hover,
-.vote-card.btn-vote-partially.selected {
-    background: rgba(245, 158, 11, 0.25);
-    border-color: var(--accent-gold);
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
 }
 
 .vote-card.btn-vote-no {
@@ -1675,7 +1731,6 @@ textarea:focus {
 }
 
 .tally.yes strong { color: #34d399; }
-.tally.partially strong { color: #fbbf24; }
 .tally.no strong { color: #f87171; }
 
 .points-toast {
@@ -1688,6 +1743,56 @@ textarea:focus {
     font-family: var(--font-heading);
     font-size: 1.1rem;
     font-weight: 800;
+}
+
+/* 30-Second Question & Answer Display Countdown */
+.result-countdown-container {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.countdown-bar-wrapper {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.countdown-progress-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+    border-radius: var(--radius-full);
+    transition: width 0.25s linear;
+}
+
+.countdown-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.btn-skip-mini {
+    background: rgba(147, 128, 255, 0.2);
+    border: 1px solid var(--accent-purple);
+    color: #e0d9ff;
+    border-radius: var(--radius-full);
+    padding: 3px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.btn-skip-mini:hover {
+    background: var(--accent-purple);
+    color: #fff;
+    transform: translateY(-1px);
 }
 
 /* =========================================================

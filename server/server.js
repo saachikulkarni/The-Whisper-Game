@@ -37,7 +37,7 @@ const PHASES = {
     FINAL_RESULTS: "finalResults"
 };
 
-const VOTE_OPTIONS = ["yes", "partially", "no"];
+const VOTE_OPTIONS = ["yes", "no"];
 
 const DEFAULT_AVATARS = ["🦊", "🐼", "🦁", "🐯", "🦄", "🐸", "🐙", "🤖", "👽", "🦉", "🐵", "🐧", "🐲", "🐱", "🐶", "🚀"];
 
@@ -134,7 +134,7 @@ function createRound(game) {
         currentTargetId: null,
         revealedWord: "",
 
-        votes: {}, // voterId -> "yes" | "partially" | "no"
+        votes: {}, // voterId -> "yes" | "no"
         roundScores: {}, // playerId -> points earned in this round
         qaHistory: [],
         winnerIds: []
@@ -167,12 +167,24 @@ function buildPublicState(game, socket) {
         };
     });
 
+    const kickThreshold = Math.max(1, Math.floor((game.players.length - 1) / 2) + 1);
+    const kickVotesSummary = {};
+    for (const p of game.players) {
+        const voters = (game.kickVotes && game.kickVotes[p.id]) || [];
+        kickVotesSummary[p.id] = {
+            count: voters.length,
+            votedByMe: me ? voters.includes(me.id) : false
+        };
+    }
+
     const state = {
         gameCode: game.code,
         phase: game.phase,
         rounds: game.rounds,
         currentRound: game.currentRound,
         players,
+        kickThreshold,
+        kickVotes: kickVotesSummary,
         me: me
             ? {
                 id: me.id,
@@ -325,12 +337,10 @@ function finishVoting(game) {
     const totalVoters = Math.max(1, game.players.length - 1);
 
     let yes = 0;
-    let partially = 0;
     let no = 0;
 
     for (const vote of Object.values(game.round.votes)) {
         if (vote === "yes") yes++;
-        else if (vote === "partially") partially++;
         else if (vote === "no") no++;
     }
 
@@ -360,11 +370,13 @@ function finishVoting(game) {
         targetName: target ? target.username : "",
         question: game.round.currentQuestion,
         revealedWord: game.round.revealedWord,
-        votes: { yes, partially, no },
+        votes: { yes, no },
         pointsAwarded: pointsEarned,
         majorityMatch: isMajority
     };
     game.round.qaHistory.push(qaRecord);
+
+    const DISPLAY_DURATION_SECONDS = 30;
 
     io.to(getRoomName(game)).emit("answerResult", {
         askerId: asker ? asker.id : "",
@@ -374,22 +386,33 @@ function finishVoting(game) {
         revealedWord: game.round.revealedWord,
         question: game.round.currentQuestion,
         yes,
-        partially,
         no,
         pointsEarned,
         isMajority,
-        isUnanimous
+        isUnanimous,
+        displayDuration: DISPLAY_DURATION_SECONDS
     });
 
     broadcastState(game);
 
-    // Give players 4 seconds to laugh & enjoy the result card before advancing
-    setTimeout(() => {
+    if (game.resultTimer) {
+        clearTimeout(game.resultTimer);
+        game.resultTimer = null;
+    }
+
+    // Give players 30 seconds to laugh & enjoy the question-answer card before advancing
+    game.resultTimer = setTimeout(() => {
+        game.resultTimer = null;
         moveToNextQuestionOrFinishRound(game);
-    }, 4200);
+    }, DISPLAY_DURATION_SECONDS * 1000);
 }
 
 function moveToNextQuestionOrFinishRound(game) {
+    if (game.resultTimer) {
+        clearTimeout(game.resultTimer);
+        game.resultTimer = null;
+    }
+
     game.round.questionIndex++;
 
     if (game.round.questionIndex < game.round.questionPairs.length) {
@@ -493,6 +516,104 @@ function finishGame(game) {
     broadcastState(game);
 }
 
+function executeKick(game, targetPlayerId, reason = "majority") {
+    const targetIndex = game.players.findIndex(p => p.id === targetPlayerId);
+    if (targetIndex === -1) return;
+
+    const target = game.players[targetIndex];
+    const targetSocket = io.sockets.sockets.get(target.socketId);
+
+    // Remove from players array
+    game.players.splice(targetIndex, 1);
+
+    // Clean up kickVotes
+    if (game.kickVotes) {
+        delete game.kickVotes[targetPlayerId];
+        for (const tId in game.kickVotes) {
+            game.kickVotes[tId] = game.kickVotes[tId].filter(id => id !== targetPlayerId);
+        }
+    }
+
+    // Notify kicked player
+    if (targetSocket) {
+        targetSocket.emit("kickedFromGame", {
+            message: reason === "majority"
+                ? "You were kicked from the game by a majority vote of all players."
+                : "You were removed from the room."
+        });
+        targetSocket.leave(getRoomName(game));
+    }
+
+    // If host was kicked, reassign host
+    if (game.hostPlayerId === targetPlayerId && game.players.length > 0) {
+        game.hostPlayerId = game.players[0].id;
+    }
+
+    // Broadcast kick to room
+    io.to(getRoomName(game)).emit("playerKicked", {
+        playerId: targetPlayerId,
+        username: target.username,
+        reason
+    });
+
+    if (game.phase === PHASES.LOBBY) {
+        if (game.players.length === 0) {
+            games.delete(game.code);
+            return;
+        }
+        broadcastState(game);
+        return;
+    }
+
+    // In active game: if less than 2 players remain, return to lobby
+    if (game.players.length < 2) {
+        if (game.resultTimer) {
+            clearTimeout(game.resultTimer);
+            game.resultTimer = null;
+        }
+        game.phase = PHASES.LOBBY;
+        game.round = null;
+        game.currentRound = 0;
+        io.to(getRoomName(game)).emit("errorMessage", "Not enough players remaining. Returning to lobby.");
+        broadcastState(game);
+        return;
+    }
+
+    // If in WORD_PASS phase:
+    if (game.phase === PHASES.WORD_PASS) {
+        game.round = createRound(game);
+        io.to(getRoomName(game)).emit("errorMessage", `${target.username} was kicked. Circle reorganized!`);
+        broadcastState(game);
+        return;
+    }
+
+    // If in QUESTIONS or VOTING phase:
+    if (game.phase === PHASES.QUESTIONS || game.phase === PHASES.VOTING) {
+        if (game.resultTimer) {
+            clearTimeout(game.resultTimer);
+            game.resultTimer = null;
+        }
+
+        const pair = game.round && game.round.questionPairs ? game.round.questionPairs[game.round.questionIndex] : null;
+        const isInvolved = pair && (
+            game.round.currentTargetId === targetPlayerId ||
+            (game.players[pair.askerIndex] && game.players[pair.askerIndex].id === targetPlayerId) ||
+            (game.players[pair.targetIndex] && game.players[pair.targetIndex].id === targetPlayerId)
+        );
+
+        game.round.questionPairs = buildAnticlockwisePairs(game.players.length);
+
+        if (isInvolved || game.round.questionIndex >= game.round.questionPairs.length) {
+            moveToNextQuestionOrFinishRound(game);
+        } else {
+            broadcastState(game);
+        }
+        return;
+    }
+
+    broadcastState(game);
+}
+
 /* =========================================================
    SOCKET.IO EVENT ROUTERS
 ========================================================= */
@@ -535,6 +656,8 @@ io.on("connection", socket => {
             phase: PHASES.LOBBY,
             players: [player],
             round: null,
+            kickVotes: {},
+            resultTimer: null,
             createdAt: Date.now()
         };
 
@@ -653,7 +776,7 @@ io.on("connection", socket => {
         }
 
         if (game.players.length < 2) {
-            socket.emit("errorMessage", "At least 2 players are needed to play Chinese Whisper.");
+            socket.emit("errorMessage", "At least 2 players are needed to play The Whisper Game.");
             return;
         }
 
@@ -849,9 +972,15 @@ io.on("connection", socket => {
             return;
         }
 
+        if (game.resultTimer) {
+            clearTimeout(game.resultTimer);
+            game.resultTimer = null;
+        }
+
         game.phase = PHASES.LOBBY;
         game.currentRound = 0;
         game.round = null;
+        game.kickVotes = {};
         game.players.forEach(p => {
             p.score = 0;
             p.secretWord = "";
@@ -876,7 +1005,59 @@ io.on("connection", socket => {
         });
     });
 
-    // 10. HOST CONTROLS: KICK PLAYER & SKIP AFK TURN
+    // 10. DEMOCRATIC VOTE-TO-KICK (MAJORITY OF PLAYERS) & HOST KICK
+    socket.on("voteKickPlayer", targetPlayerId => {
+        const game = getGame(socket.data.gameCode);
+        if (!game) return;
+
+        const voter = getPlayerBySocket(game, socket.id);
+        if (!voter) return;
+
+        if (voter.id === targetPlayerId) {
+            socket.emit("errorMessage", "You cannot vote to kick yourself.");
+            return;
+        }
+
+        const target = getPlayer(game, targetPlayerId);
+        if (!target) {
+            socket.emit("errorMessage", "Player not found.");
+            return;
+        }
+
+        if (!game.kickVotes) {
+            game.kickVotes = {};
+        }
+        if (!Array.isArray(game.kickVotes[targetPlayerId])) {
+            game.kickVotes[targetPlayerId] = [];
+        }
+
+        const idx = game.kickVotes[targetPlayerId].indexOf(voter.id);
+        if (idx >= 0) {
+            game.kickVotes[targetPlayerId].splice(idx, 1);
+            socket.emit("soundEffect", "click");
+        } else {
+            game.kickVotes[targetPlayerId].push(voter.id);
+            socket.emit("soundEffect", "votePop");
+        }
+
+        const eligibleVoters = Math.max(1, game.players.length - 1);
+        const requiredVotes = Math.max(1, Math.floor(eligibleVoters / 2) + 1);
+        const currentVotes = game.kickVotes[targetPlayerId].length;
+
+        io.to(getRoomName(game)).emit("kickVoteProgress", {
+            targetPlayerId,
+            targetName: target.username,
+            currentVotes,
+            requiredVotes
+        });
+
+        if (currentVotes >= requiredVotes) {
+            executeKick(game, targetPlayerId, "majority");
+        } else {
+            broadcastState(game);
+        }
+    });
+
     socket.on("kickPlayer", targetPlayerId => {
         const game = getGame(socket.data.gameCode);
         if (!game) return;
@@ -885,18 +1066,21 @@ io.on("connection", socket => {
         if (!me || me.id !== game.hostPlayerId) return;
 
         if (game.phase !== PHASES.LOBBY) return;
+        executeKick(game, targetPlayerId, "host");
+    });
 
-        const target = getPlayer(game, targetPlayerId);
-        if (!target || target.id === me.id) return;
+    socket.on("skipResultDisplay", () => {
+        const game = getGame(socket.data.gameCode);
+        if (!game) return;
 
-        game.players = game.players.filter(p => p.id !== targetPlayerId);
-        const targetSocket = io.sockets.sockets.get(target.socketId);
-        if (targetSocket) {
-            targetSocket.emit("errorMessage", "You were removed from the room by the host.");
-            targetSocket.leave(getRoomName(game));
+        const me = getPlayerBySocket(game, socket.id);
+        if (!me || me.id !== game.hostPlayerId) return;
+
+        if (game.resultTimer) {
+            clearTimeout(game.resultTimer);
+            game.resultTimer = null;
+            moveToNextQuestionOrFinishRound(game);
         }
-
-        broadcastState(game);
     });
 
     socket.on("skipTurn", () => {
@@ -988,7 +1172,7 @@ app.get("/health", (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`\n========================================`);
-    console.log(`  🎪 Chinese Whisper Server Running!`);
+    console.log(`  🎪 The Whisper Game Server Running!`);
     console.log(`  🌐 http://localhost:${PORT}`);
     console.log(`  🍃 MongoDB: ${isMongoConnected() ? "Connected" : "In-Memory Mode"}`);
     console.log(`========================================\n`);
