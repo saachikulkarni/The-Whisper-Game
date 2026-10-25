@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
-    "test": "node test_simulation.cjs"
+    "test": "node test_simulation.cjs",
+    "springboot": "cd backend-springboot && .\\mvnw.cmd spring-boot:run",
+    "springboot:test": "cd backend-springboot && .\\mvnw.cmd test"
   },
   "dependencies": {
     "dotenv": "^18.0.6",

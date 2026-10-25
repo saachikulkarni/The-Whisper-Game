@@ -84,6 +84,21 @@ Run the automated 4-player multiplayer simulation to verify all game rules, sock
 npm test
 ```
 
+### 4. Run Spring Boot Backend (Java 21)
+You can also run the enterprise Java Spring Boot backend located in `/backend-springboot`:
+```bash
+# Using npm shortcut:
+npm run springboot
+
+# Or using Maven wrapper directly:
+cd backend-springboot
+.\mvnw.cmd spring-boot:run
+
+# Run Spring Boot unit & integration tests:
+.\mvnw.cmd test
+```
+The Spring Boot server will run at **http://localhost:8080** with native WebSocket support at `ws://localhost:8080/ws`!
+
 ---
 
 ## 📁 Project Structure

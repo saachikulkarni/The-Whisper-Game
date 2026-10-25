@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Whisper Game — Multiplayer Circle Party Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <!-- Sound & Visualizer libraries -->
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script src="/js/audio.js" defer></script>
+    <script src="/js/circle.js" defer></script>
+    <script src="/js/app.js" defer></script>
+</head>
+
+<body>
+    <!-- Confetti Canvas -->
+    <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+    <!-- Floating Reactions Container -->
+    <div id="reactionsContainer" class="reactions-container"></div>
+
+    <div class="app-layout">
+
+        <!-- =================================================
+             TOP NAVIGATION BAR
+        ================================================== -->
+        <header class="top-navbar">
+            <div class="brand">
+                <span class="brand-icon">🗣️</span>
+                <div>
+                    <h1 class="brand-title">The Whisper Game</h1>
+                    <span class="brand-tagline">Pass Secret Words ↻ • Ask Anticlockwise ↺ • Vote Majority!</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound">
+                    <span id="soundIcon">🔊</span>
+                </button>
+                <div id="connectionPill" class="connection-pill connecting">
+                    <span class="dot"></span>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Notification Toast -->
+        <div id="toastBox" class="toast-box hidden"></div>
+
+        <!-- =================================================
+             HOME SCREEN (CREATE / JOIN)
+        ================================================== -->
+        <main id="homeScreen" class="screen">
+            <div class="home-hero">
+                <div class="hero-badge">🎉 Real-time Multiplayer Party Game</div>
+                <h2 class="hero-title">Sit in a Circle. Whisper Secrets. Break Logic!</h2>
+                <p class="hero-desc">
+                    Players sit in a clockwise circle. Pass secret words clockwise (<strong>1 ➔ 2 ➔ ... ➔ N ➔ 1</strong>).
+                    Then ask hilarious questions anticlockwise (<strong>N ➔ N-1 ➔ ... ➔ 1</strong>).
+                    Reveal your secret word and vote if it makes perfect sense!
+                </p>
+            </div>
+
+            <!-- Avatar Picker -->
+            <div class="avatar-section card">
+                <div class="section-title-row">
+                    <h3>Choose Your Party Avatar</h3>
+                    <span class="small-hint">Tap to pick</span>
+                </div>
+                <div id="avatarPicker" class="avatar-grid"></div>
+            </div>
+
+            <!-- Tabs: Create vs Join -->
+            <div class="home-card card">
+                <div class="tabs-header">
+                    <button id="tabCreateBtn" class="tab-btn active">👑 Create Room</button>
+                    <button id="tabJoinBtn" class="tab-btn">🚀 Join Room</button>
+                </div>
+
+                <!-- Create Panel -->
+                <div id="panelCreate" class="tab-panel">
+                    <div class="form-group">
+                        <label for="createUsername">Your Player Name</label>
+                        <input id="createUsername" type="text" maxlength="20" placeholder="e.g. Alex, Sam, Maya..." autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Number of Rounds</label>
+                        <div class="round-chips">
+                            <button type="button" class="chip-btn" data-rounds="1">1 Round</button>
+                            <button type="button" class="chip-btn active" data-rounds="3">3 Rounds</button>
+                            <button type="button" class="chip-btn" data-rounds="5">5 Rounds</button>
+                        </div>
+                        <input id="customRoundsInput" type="hidden" value="3">
+                    </div>
+
+                    <button id="btnCreateGame" class="btn btn-primary btn-block btn-lg">
+                        <span>Create Party Room</span>
+                        <span class="btn-arrow">➔</span>
+                    </button>
+                </div>
+
+                <!-- Join Panel -->
+                <div id="panelJoin" class="tab-panel hidden">
+                    <div class="form-group">
+                        <label for="joinUsername">Your Player Name</label>
+                        <input id="joinUsername" type="text" maxlength="20" placeholder="e.g. Alex, Sam, Maya..." autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="joinGameCode">6-Letter Room Code</label>
+                        <div class="code-input-wrapper">
+                            <input id="joinGameCode" type="text" maxlength="6" placeholder="ABCXYZ" autocomplete="off" class="code-field">
+                        </div>
+                    </div>
+
+                    <button id="btnJoinGame" class="btn btn-secondary btn-block btn-lg">
+                        <span>Enter Room</span>
+                        <span class="btn-arrow">➔</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- How to Play Quick Cards -->
+            <div class="rules-grid">
+                <div class="rule-card">
+                    <div class="rule-num">1</div>
+                    <h4>Clockwise Whispers ↻</h4>
+                    <p>Player 1 gives a secret word to Player 2, and so on until Player N gives to Player 1. Words stay 100% secret!</p>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-num">2</div>
+                    <h4>Anticlockwise Questions ↺</h4>
+                    <p>The circle reverses! Player N asks Player N-1 a custom question. Player N-1 reveals their secret word as the answer!</p>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-num">3</div>
+                    <h4>Majority Vote & Points 🗳️</h4>
+                    <p>All players vote whether the secret word makes sense to the question. Win points + majority bonus!</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- =================================================
+             GAME ARENA SCREEN
+        ================================================== -->
+        <main id="gameScreen" class="screen hidden">
+
+            <!-- ARENA TOP BAR -->
+            <div class="arena-bar card">
+                <div class="room-pill">
+                    <span class="pill-label">ROOM</span>
+                    <strong id="displayRoomCode" class="room-code">------</strong>
+                    <button id="btnCopyCode" class="btn-mini" title="Copy Room Code">📋 Copy</button>
+                    <button id="btnShareLink" class="btn-mini" title="Copy Invite Link">🔗 Invite Link</button>
+                </div>
+
+                <div class="round-badge">
+                    <span class="round-text">Round <strong id="displayRoundNum">1</strong> of <strong id="displayTotalRounds">3</strong></span>
+                </div>
+
+                <!-- Sticky Secret Word Peek Pill -->
+                <div id="arenaMyWordPill" class="my-word-pill hidden">
+                    <span class="pill-label">YOUR SECRET WORD</span>
+                    <strong id="arenaMyWordText">------</strong>
+                    <button id="btnArenaToggleWord" class="btn-mini" title="Hide/Show">👁️</button>
+                </div>
+
+                <div class="my-score-pill">
+                    <span class="pill-label">YOUR SCORE</span>
+                    <strong id="displayMyScore" class="score-highlight">0</strong>
+                    <span class="pts-unit">pts</span>
+                </div>
+            </div>
+
+            <!-- MAIN ARENA LAYOUT (CIRCLE VISUALIZER + ACTIVE STAGE) -->
+            <div class="arena-layout">
+
+                <!-- LEFT / CENTER: THE WHISPER CIRCLE -->
+                <div class="circle-container card">
+                    <div class="circle-header">
+                        <span class="section-tag">THE WHISPER CIRCLE</span>
+                        <div id="circleFlowLegend" class="flow-legend">Clockwise Seating Order</div>
+                    </div>
+                    <div id="whisperCircleMount" class="circle-mount"></div>
+                </div>
+
+                <!-- RIGHT: ACTIVE PHASE STAGE -->
+                <div class="stage-container">
+
+                    <!-- =========================================
+                         1. LOBBY PANEL
+                    ========================================== -->
+                    <div id="panelLobby" class="stage-panel card">
+                        <div class="panel-icon">🎪</div>
+                        <h2 class="panel-title">Party Lobby</h2>
+                        <p class="panel-subtitle">Share the room code or link with your friends to join the circle!</p>
+
+                        <div class="lobby-roster">
+                            <div class="roster-header">
+                                <span>Players Seated (<span id="rosterCount">0</span>)</span>
+                                <span class="order-badge">Clockwise: 1 ➔ 2 ➔ 3...</span>
+                            </div>
+                            <div id="lobbyRosterList" class="roster-grid"></div>
+                        </div>
+
+                        <!-- Host controls -->
+                        <div id="lobbyHostArea" class="action-dock hidden">
+                            <button id="btnStartGame" class="btn btn-primary btn-block btn-lg pulse-glow">
+                                <span>Start The Whisper Game 🚀</span>
+                            </button>
+                            <p class="host-notice">You need at least 2 players to start.</p>
+                        </div>
+
+                        <div id="lobbyWaitingArea" class="waiting-card hidden">
+                            <div class="spinner"></div>
+                            <span>Waiting for the host to start the game...</span>
+                        </div>
+                    </div>
+
+                    <!-- =========================================
+                         2. WORD PASS PANEL (CLOCKWISE)
+                    ========================================== -->
+                    <div id="panelWordPass" class="stage-panel card hidden">
+                        <div class="phase-indicator">
+                            <span class="phase-tag">PHASE 1</span>
+                            <span class="direction-tag">↻ CLOCKWISE PASS</span>
+                        </div>
+
+                        <h2 class="panel-title">Pass the Secret Word</h2>
+                        <p id="wordPassHeaderDesc" class="panel-subtitle">
+                            Give a secret word to the player next to you in the circle!
+                        </p>
+
+                        <!-- Progress Bar of sealed words -->
+                        <div class="pass-progress-bar-wrap">
+                            <div class="progress-labels">
+                                <span>Secret Words Sealed:</span>
+                                <strong id="sealedCountText">0 / 0</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div id="sealedProgressBar" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- INPUT CARD (If you haven't submitted yet) -->
+                        <div id="wordInputSection" class="action-card">
+                            <div class="receiver-target-banner">
+                                <span class="label">YOU ARE GIVING A WORD TO:</span>
+                                <div class="receiver-profile">
+                                    <span id="targetReceiverAvatar" class="avatar-large">👤</span>
+                                    <div>
+                                        <h3 id="targetReceiverName" class="receiver-name">Player Name</h3>
+                                        <span id="targetReceiverNum" class="receiver-num">Player #2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Word Category Idea Chips -->
+                            <div class="word-ideas">
+                                <span class="ideas-label">💡 Need inspiration? Pick a category:</span>
+                                <div class="category-chips">
+                                    <button type="button" class="word-chip" data-cat="animal">🦁 Animal</button>
+                                    <button type="button" class="word-chip" data-cat="food">🍕 Food</button>
+                                    <button type="button" class="word-chip" data-cat="place">🗽 Place</button>
+                                    <button type="button" class="word-chip" data-cat="object">🎸 Object</button>
+                                    <button type="button" class="word-chip" data-cat="absurd">🛸 Absurd</button>
+                                    <button type="button" id="btnRandomWordSpark" class="word-chip spark-chip">🎲 Random Idea</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="secretWordInput">Your Secret Word</label>
+                                <input id="secretWordInput" type="text" maxlength="50" placeholder="Type secret word (e.g. Submarine, Pineapple, Paris...)" autocomplete="off">
+                            </div>
+
+                            <button id="btnSubmitWord" class="btn btn-primary btn-block btn-lg">
+                                <span>Seal & Pass Word ✉️</span>
+                            </button>
+                            <p class="privacy-note">🔒 Only the receiver will know this word when questioned!</p>
+                        </div>
+
+                        <!-- WAITING / SEALED CONFIRMATION CARD -->
+                        <div id="wordSealedSection" class="sealed-status-card hidden">
+                            <div class="sealed-icon">✉️</div>
+                            <h3>Your Secret Word is Sealed!</h3>
+                            <p id="sealedNoticeText">Waiting for other players to finish passing their words...</p>
+                        </div>
+
+                        <!-- YOUR OWN PRIVATE SECRET WORD REVEAL BOX -->
+                        <div id="mySecretWordDisplayCard" class="private-vault-card hidden">
+                            <div class="vault-header">
+                                <span>🤫 YOUR SECRET WORD (FROM <span id="myGiverName">...</span>)</span>
+                                <button id="btnToggleHideWord" class="btn-eye" title="Hide/Show">👁️ Hide</button>
+                            </div>
+                            <div id="myPrivateWordText" class="vault-word">------</div>
+                            <span class="vault-warning">⚠️ Keep it secret! Reveal it only when asked a question!</span>
+                        </div>
+                    </div>
+
+                    <!-- =========================================
+                         3. QUESTION PANEL (ANTICLOCKWISE)
+                    ========================================== -->
+                    <div id="panelQuestion" class="stage-panel card hidden">
+                        <div class="phase-indicator">
+                            <span class="phase-tag">PHASE 2</span>
+                            <span class="direction-tag">↺ ANTICLOCKWISE FLOW</span>
+                        </div>
+
+                        <h2 class="panel-title">Question Time!</h2>
+                        <div id="questionProgressBadge" class="turn-badge">Question 1 of N</div>
+
+                        <!-- QUESTION PAIR SHOWCASE -->
+                        <div class="pair-showcase">
+                            <div class="person-card asker">
+                                <span class="role-badge">ASKER 🗣️</span>
+                                <span id="qaAskerAvatar" class="avatar-large">👤</span>
+                                <strong id="qaAskerName">Asker</strong>
+                                <span id="qaAskerNum" class="seat-tag">Player #4</span>
+                            </div>
+
+                            <div class="vs-arrow">
+                                <span>asks</span>
+                                <div class="arrow-glyph">➔</div>
+                            </div>
+
+                            <div class="person-card target">
+                                <span class="role-badge">TARGET 🎯</span>
+                                <span id="qaTargetAvatar" class="avatar-large">👤</span>
+                                <strong id="qaTargetName">Target</strong>
+                                <span id="qaTargetNum" class="seat-tag">Player #3</span>
+                            </div>
+                        </div>
+
+                        <!-- ASKER INPUT AREA (If you are the asker) -->
+                        <div id="askerInputArea" class="action-card hidden">
+                            <div class="asker-header">
+                                <h3>Ask <span id="askerTargetPromptName">Target</span> a question out loud!</h3>
+                                <p class="hint">They must answer using their secret word!</p>
+                            </div>
+
+                            <!-- Question categories & generator -->
+                            <div class="question-generator">
+                                <span class="gen-label">💡 Question Prompts:</span>
+                                <div class="question-prompt-chips">
+                                    <button type="button" class="q-chip" data-qcat="hilarious">😂 Hilarious</button>
+                                    <button type="button" class="q-chip" data-qcat="awkward">🕵️ Awkward</button>
+                                    <button type="button" class="q-chip" data-qcat="survival">🏝️ Survival</button>
+                                    <button type="button" class="q-chip" data-qcat="wild">🚀 Wild</button>
+                                    <button type="button" id="btnRandomQuestion" class="q-chip spark-chip">🎲 Random Question</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <textarea id="questionInputText" rows="3" maxlength="160" placeholder="Type any question you want to ask..."></textarea>
+                            </div>
+
+                            <button id="btnSubmitQuestion" class="btn btn-primary btn-block btn-lg">
+                                <span>Ask Question 🚀</span>
+                            </button>
+                        </div>
+
+                        <!-- WAITING AREA (If you are NOT the asker) -->
+                        <div id="askerWaitingArea" class="waiting-card hidden">
+                            <div class="spinner"></div>
+                            <span id="waitingForAskerText">Waiting for the asker to type a question...</span>
+                        </div>
+
+                        <!-- Host skip AFK turn -->
+                        <div id="hostSkipTurnArea" class="host-aux hidden">
+                            <button id="btnHostSkipQuestion" class="btn-subtle">⏭️ Host: Skip / Auto-Ask</button>
+                        </div>
+                    </div>
+
+                    <!-- =========================================
+                         4. VOTING & REVEAL PANEL
+                    ========================================== -->
+                    <div id="panelVoting" class="stage-panel card hidden">
+                        <div class="phase-indicator">
+                            <span class="phase-tag">PHASE 3</span>
+                            <span class="direction-tag">🗳️ REVEAL & VOTE</span>
+                        </div>
+
+                        <h2 class="panel-title">Word Reveal & Majority Vote!</h2>
+
+                        <!-- The Question & Revealed Word Display -->
+                        <div class="reveal-arena">
+                            <div class="question-speech-bubble">
+                                <div class="bubble-header">
+                                    <span id="voteAskerHeader">Asker asks:</span>
+                                </div>
+                                <p id="voteQuestionText" class="bubble-content">"What would you bring to a deserted island?"</p>
+                            </div>
+
+                            <div class="reveal-flip-card">
+                                <span class="reveal-label">TARGET'S SECRET WORD ANSWER:</span>
+                                <div id="revealedWordBanner" class="revealed-word-box">
+                                    <span class="word-glow">✨</span>
+                                    <strong id="revealedWordText">Laptop</strong>
+                                    <span class="word-glow">✨</span>
+                                </div>
+                                <div class="target-subtext">Revealed by <strong id="revealedTargetName">Target</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- VOTING ACTION BOX -->
+                        <div id="voteButtonsSection" class="voting-action-box">
+                            <h3 class="vote-prompt-title">Does this answer make sense to the question?</h3>
+
+                            <div class="vote-cards-grid">
+                                <button class="vote-card btn-vote-yes" data-vote="yes">
+                                    <span class="vote-icon">✅</span>
+                                    <strong class="vote-text">YES!</strong>
+                                    <span class="vote-sub">Makes perfect sense (+Points)</span>
+                                </button>
+
+                                <button class="vote-card btn-vote-no" data-vote="no">
+                                    <span class="vote-icon">❌</span>
+                                    <strong class="vote-text">NO!</strong>
+                                    <span class="vote-sub">Complete absurdity!</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Asker in hot seat waiting notice -->
+                        <div id="targetHotSeatNotice" class="hot-seat-card hidden">
+                            <div class="hot-seat-icon">🔥</div>
+                            <h3>You are in the Hot Seat!</h3>
+                            <p>You asked the question! You cannot vote on your own question. The other players are voting right now!</p>
+                        </div>
+
+                        <!-- Vote Progress Ticker -->
+                        <div class="vote-tracker">
+                            <span id="voteProgressText">Votes Received: 0 / 0</span>
+                        </div>
+
+                        <!-- POST-VOTING RESULT BANNER (Visible after votes are counted) -->
+                        <div id="votingResultCard" class="result-breakdown-card hidden">
+                            <div id="votingVerdictBanner" class="verdict-banner">Verdict</div>
+                            <div class="vote-tallies">
+                                <div class="tally yes">
+                                    <span>✅ Yes</span>
+                                    <strong id="tallyYes">0</strong>
+                                </div>
+                                <div class="tally no">
+                                    <span>❌ No</span>
+                                    <strong id="tallyNo">0</strong>
+                                </div>
+                            </div>
+                            <div id="pointsAwardedToast" class="points-toast">+0 Points!</div>
+
+                            <!-- 30-Second Countdown & Host Skip -->
+                            <div class="result-countdown-container">
+                                <div class="countdown-bar-wrapper">
+                                    <div id="resultCountdownProgress" class="countdown-progress-bar"></div>
+                                </div>
+                                <div class="countdown-label-row">
+                                    <span id="resultTimerCountdown">Next question in 30s...</span>
+                                    <button id="btnHostSkipResult" class="btn-skip-mini hidden" title="Host Skip">Skip ➔</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- =========================================
+                         5. ROUND RESULTS PANEL
+                    ========================================== -->
+                    <div id="panelRoundResults" class="stage-panel card hidden">
+                        <div class="trophy-header">
+                            <span class="trophy-icon">🏆</span>
+                            <h2 class="panel-title">Round Complete!</h2>
+                            <div id="roundWinnerBanner" class="round-winner-banner">Round Winner</div>
+                        </div>
+
+                        <div class="scoreboard-section">
+                            <h3>Scoreboard Standings</h3>
+                            <div id="roundScoreList" class="score-list-grid"></div>
+                        </div>
+
+                        <div class="round-qa-recap">
+                            <h3>Round Highlights</h3>
+                            <div id="roundRecapList" class="recap-list"></div>
+                        </div>
+
+                        <!-- Host Next Round Controls -->
+                        <div id="hostNextRoundArea" class="action-dock hidden">
+                            <button id="btnNextRound" class="btn btn-primary btn-block btn-lg pulse-glow">
+                                <span id="nextRoundBtnText">Next Round ➔</span>
+                            </button>
+                        </div>
+                        <div id="waitingNextRoundArea" class="waiting-card hidden">
+                            <span>Waiting for the host to continue to the next round...</span>
+                        </div>
+                    </div>
+
+                    <!-- =========================================
+                         6. FINAL RESULTS & 3D PODIUM
+                    ========================================== -->
+                    <div id="panelFinalResults" class="stage-panel card hidden">
+                        <div class="final-hero">
+                            <div class="crown-icon">👑</div>
+                            <h2 class="hero-title">Game Over! Final Champions!</h2>
+                            <div id="finalWinnerBanner" class="final-winner-banner">Game Winner</div>
+                        </div>
+
+                        <!-- 3D Podium for Top 3 -->
+                        <div id="podiumMount" class="podium-container"></div>
+
+                        <!-- Complete Leaderboard -->
+                        <div class="scoreboard-section">
+                            <h3>Complete Final Leaderboard</h3>
+                            <div id="finalScoreList" class="score-list-grid"></div>
+                        </div>
+
+                        <!-- Host Restart Game -->
+                        <div id="hostRestartArea" class="action-dock hidden">
+                            <button id="btnRestartGame" class="btn btn-primary btn-block btn-lg pulse-glow">
+                                <span>Play Again 🔄</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- FLOATING EMOJI REACTION DOCK -->
+            <div class="reaction-dock card">
+                <span class="dock-label">React:</span>
+                <div class="emoji-buttons">
+                    <button class="reaction-btn" data-emoji="😂">😂</button>
+                    <button class="reaction-btn" data-emoji="👏">👏</button>
+                    <button class="reaction-btn" data-emoji="🤯">🤯</button>
+                    <button class="reaction-btn" data-emoji="🔥">🔥</button>
+                    <button class="reaction-btn" data-emoji="💀">💀</button>
+                    <button class="reaction-btn" data-emoji="🍕">🍕</button>
+                    <button class="reaction-btn" data-emoji="🏆">🏆</button>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+</body>
+
+</html>
