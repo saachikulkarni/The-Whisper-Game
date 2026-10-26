@@ -1,2 +1,44 @@
-node_modules/
+# Compiled Java artifacts & build outputs
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Environment & Secret files (MongoDB URI, credentials)
 .env
+.env.*
+*.local
+
+# IDE & Editor configurations
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+.springBeans
+
+# Logs & Temporary files
+*.log
+logs/
+temp/
+tmp/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Legacy Node / Frontend cache
+node_modules/
+.npm/
+npm-debug.log*
+
+# Exceptions: keep Maven Wrapper jar and properties
+!.mvn/wrapper/maven-wrapper.jar
+!backend-springboot/.mvn/wrapper/maven-wrapper.jar
