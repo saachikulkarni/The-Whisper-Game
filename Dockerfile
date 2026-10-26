@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 COPY backend-springboot/pom.xml backend-springboot/mvnw ./
 COPY backend-springboot/.mvn .mvn
-RUN ./mvnw dependency:go-offline -B
+RUN chmod +x ./mvnw && ./mvnw dependency:go-offline -B
 COPY backend-springboot/src src
 RUN ./mvnw clean package -DskipTests
 
