@@ -27,6 +27,8 @@ target/
 logs/
 temp/
 tmp/
+Project_Report.*
+build_*.py
 
 # OS generated files
 Thumbs.db
